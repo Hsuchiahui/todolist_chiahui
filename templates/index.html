@@ -12,11 +12,11 @@
     
     <style>
         .jumbotron{
-            background: white;
-            background-image: url('https://i.imgur.com/NDOVFhp.jpg') ,url('https://i.imgur.com/NDOVFhp.jpg');
+            background:#7b2113;
+            background-image: url('https://i.imgur.com/U8BekaM.jpg') ,url('https://i.imgur.com/FIrpGOQ.jpg');
             background-repeat: no-repeat,no-repeat;
-            background-position: left center,right center;
-            color: #69B2AF;  
+            background-position: left 40%,right 40%;
+            color: #69B2AF;   
         }
         /*邊界: 上  右  下  左*/
         section{
@@ -59,7 +59,7 @@
     </style>
 </head> 
 <body>
-    <div class="jumbotron jumbotron-fluid" style="border: 2px solid #2196F3;">
+    <div class="jumbotron jumbotron-fluid">
         <div class="container" style="text-align: center;">
             <h1 class="display-4">癡呆寶寶的記事本</h1>
             <p class="lead">To do, or not to do, that is the question.</p>
@@ -120,7 +120,7 @@
                     `
                 <li data-record-id="${item['id']}" class="list-group-item d-flex justify-content-between align-items-center">
                     <div class="form-check">
-                        <input data-record-id="${item['id']}" class="form-check-input" type="checkbox" ${item['check'] == 1 ?'checked':''} value="${item['check']}" id="defaultCheck1">
+                        <input data-record-id="${item['id']}" class="form-check-input" type="checkbox" ${item['check'] == 1 ?'checked':''} value="${item['check']}" id="defaultheck1">
                         <span class="item-id"></span>
                         <span class="item-event">${item['event']}</span>
                     </div>
