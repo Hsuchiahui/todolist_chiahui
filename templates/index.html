@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en"> <!--宣告語言為英語-->
+<head>   
+    <meta charset="UTF8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>備忘錄</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ"
+        crossorigin="anonymous">
+    
+    <style>
+        .jumbotron{
+            background: white;
+            background-image: url('https://i.imgur.com/NDOVFhp.jpg') ,url('https://i.imgur.com/NDOVFhp.jpg');
+            background-repeat: no-repeat,no-repeat;
+            background-position: left center,right center;
+            color: #69B2AF;  
+        }
+        /*邊界: 上  右  下  左*/
+        section{
+            margin: 50px  0 50px 0; 
+        }
+        .list-group-item,
+        .list-group-item:hover,
+        .list-group-item i,
+        .list-group-item i:hover,
+        .list-group-item:hover i {
+            transition: 0.3s;
+            transition-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+        }
+        .list-group-item {
+            cursor: pointer;
+            /* display mouse hand icon when hover the element */
+        }
+        .list-group-item:hover {
+            color: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 5px 0 #2196F3;
+        }
+        .list-group-item i {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        /* When Hover list-group-item, show trash icon */
+        .list-group-item:hover i {
+            opacity: 0.6;
+            pointer-events: auto;
+        }
+        .list-group-item i:hover {
+            opacity: 1;
+        }
+        .btnRemove {
+            right: 140px;
+        }
+
+    
+    </style>
+</head> 
+<body>
+    <div class="jumbotron jumbotron-fluid" style="border: 2px solid #2196F3;">
+        <div class="container" style="text-align: center;">
+            <h1 class="display-4">癡呆寶寶的記事本</h1>
+            <p class="lead">To do, or not to do, that is the question.</p>
+        </div>
+    </div>
+    <section class="input-group">
+        <div class="container">
+            <form id="post-form">
+                <div class="form-group">
+                    <label for="exampleInputEvent">待辦事項</label>
+                    <!-- Min: 1 characters -->
+                    <input pattern=".{1,}" required title="1 characters minimum" type="text" class="form-control" id="post-item-event" aria-describedby="eventHelp"
+                        placeholder="請輸入事件">
+                </div>
+                <div class="form-group">
+                    <label for="exampleInputDate">日期</label>
+                    <input pattern=".{1,}" required title="1 number minimum" type="date" class="form-control" id="post-item-date" placeholder="請輸入日期">
+                </div>
+                <button class="btn btn-info" type="submit">提交</button>
+            </form>
+        </div>
+    </section>
+    <section class="todo-list">
+        <div class="container">
+            <h2>~記得完成~</h2>
+            <ul id="item-list" class="list-group">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    例如：提早訂車票
+                    <h5><span class="badge badge-info">2018-08-21</span></h5>
+                </li>
+            </ul>
+        </div>
+    </section>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+    <script>
+        // Whether Refresh the page after sending ajax requests
+        const Debug_Mode = false;
+        const BASE_URL = window.location.origin;
+        const API_URL = BASE_URL + '/record';
+        /**************************************************************
+         * Supports
+         **************************************************************/
+        //preventDefault() :阻止元素發生預設的行為(若Debug_Mode = true,阻止網頁自動刷新)
+        function preventReload(e) {
+            if (Debug_Mode) {
+                e.preventDefault();
+            }
+        }
+        /**************************************************************
+         * Part 1: Initialize (GET Old Records)
+         **************************************************************/
+        function generateDataHtml(data) {
+            let elementsHtml = "";
+            for (item of data) {
+                console.log(item)
+                const element = 
+                    `
+                <li data-record-id="${item['id']}" class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                        <input data-record-id="${item['id']}" class="form-check-input" type="checkbox" ${item['check'] == 1 ?'checked':''} value="${item['check']}" id="defaultcheck1">
+                        <span class="item-id"></span>
+                        <span class="item-event">${item['event']}</span>
+                    </div>
+                    <i data-record-id="${item['id']}" class="btnRemove fas fa-trash-alt"></i>
+                    <h5><span data-record-date="${item['date']}" class="item-date badge badge-info"> ${item['date']}</span></h5>
+                </li>`;
+                elementsHtml +=element;
+            }
+            return elementsHtml;
+        }
+        /**
+         * Append list html in <ul> element
+         */
+        function loadData(data) {
+            const dataHtml = generateDataHtml(data);
+            $('#item-list').append(dataHtml);
+        }
+        /**
+         * Send GET requests to server to get Event record from db
+         */
+        function getItemsFromServer() {
+            $.ajax({
+                url: API_URL,
+                method: 'GET',
+                success: function (data) {
+                    loadData(data)
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
+        }
+        /**************************************************************
+         * Part 2: Create New Record
+         **************************************************************/
+        /**
+         * Get Input Value (Event & Date) From html input area
+         */
+        function getPostInputData() {
+            const itemEvent = $('#post-item-event').val();
+            const itemDate = $('#post-item-date').val();
+            return {
+                'event':itemEvent,
+                'date':itemDate,
+            }
+        }
+        /**
+         * Send Post Request to create new event record
+         */
+        function postItemToServer(inputData) {
+            $.ajax({
+                url: API_URL,
+                method: 'POST',
+                data: inputData,
+                success: function (data) {
+                    console.log(data);
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
+        }
+        /**************************************************************
+         * Part 3: Edit Record by id
+         **************************************************************/
+        function showEditForm(recordId) {
+            const recordElement = $(`.list-group-item[data-record-id='${recordId}'`);
+            const oldEvent = recordElement.find('.item-event').text()
+            const oldDate = recordElement.find('h5 .item-date').attr('data-record-date')
+            const oldCheck =  recordElement.find('.form-check-input').attr('value')
+            const formHtml
+                = `
+                <form data-record-id="${recordId}" id="put-form" class="d-flex justify-content-between align-items-center">
+                    <div class="input-group">
+                        <div class="form-check">
+                            <input data-record-id="${recordId}" class="form-check-input" type="checkbox" ${oldCheck == 'true' ? 'checked' : ''} value="${oldCheck}" id="defaultCheck1">
+                            <button data-record-id="${recordId}" class="btn btn-link btnCancel">取消</button>
+                        </div>
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">代辦事項</span>
+                        </div>
+                        <input data-record-old-event="${oldEvent}" pattern=".{1,}" required title="1 characters minimum" type="text" aria-label="Event" class="form-control" id="put-item-event" value=${oldEvent}>
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">日期</span>
+                        </div>
+                        <input data-record-old-date="${oldDate}" pattern=".{1,}" required title="1 number minimum" type="date" aria-label="Date" class="form-control" id="put-item-date" value=${oldDate}>
+                        <button class="btn btn-link" type='submit'>更新</button>
+                    </div>
+                </form>`;
+            recordElement.html(formHtml);//用formHtml覆蓋所有匹配selector元素的内容
+            // Prevent Double click the li again
+            recordElement.addClass('on-edit')
+        }
+        function cancelEditForm(recordId) {
+            const recordElement = $(`.list-group-item[data-record-id='${recordId}'`);
+            const oldEvent = recordElement.find('#put-item-event').attr('data-record-old-event');
+            const oldDate = recordElement.find('#put-item-date').attr('data-record-old-date');
+            const oldCheck = recordElement.find('.form-check-input').attr('value');
+            const element =
+                `
+                    <div>
+                        <div class="form-check">
+                            <input data-record-id="${recordId}" class="form-check-input" type="checkbox" value="${oldCheck}" ${oldCheck == 'true' ?'checked':''} id="defaultCheck1">  
+                            <span class="item-event">${oldEvent}</span>
+                            </div>
+                    </div>
+                    <i data-record-id="${recordId}" class="btnRemove fas fa-trash-alt"></i>
+                    <h5><span data-record-date="${oldDate}" class="item-date badge badge-info"> ${oldDate}</span></h5>
+                `;
+            recordElement.html(element);
+            recordElement.removeClass('on-edit')     
+        }
+        function getPutInputData(recordId) {
+            const recordElement = $(`.list-group-item[data-record-id='${recordId}'`);
+            const newEvent = recordElement.find('#put-item-event').val();
+            const newDate = recordElement.find('#put-item-date').val();
+            return {
+                'id': recordId,
+                'event': newEvent,
+                'date': newDate,
+            }
+        }
+        function sendEditItemRequest(recordId, inputData) {
+            $.ajax({
+                url: `${API_URL}/${recordId}`,
+                method: 'PUT',
+                data: inputData,
+                success: function (data) {
+                    console.log(data);
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
+        }
+        /**************************************************************
+         * Part 4: Remove Record by id
+         **************************************************************/
+         function sendRemoveItemRequest(recordId) {
+            $.ajax({
+                url: `${API_URL}/${recordId}`,
+                method: 'DELETE',
+                success: function (data) {
+                    console.log(data);
+                    if (!Debug_Mode) {
+                        location.reload();
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
+        }
+        /**************************************************************
+         * Part 5: Main Function (Event Listening) 監聽事件
+         **************************************************************/
+        // Display past Event records
+        getItemsFromServer()
+        /**
+         * Listen: Form submit event (Create【新增】 new record)
+         */
+        $('#post-form').submit(function (e) {
+            // prevent auto reload the page after sending request
+            preventReload(e)
+            const inputData = getPostInputData();
+            // check inputData is valid
+            if (inputData) {
+                // create new record
+                postItemToServer(inputData);
+            }
+        });
+        /**
+         * Listen: Remove icon【垃圾桶】 Click event (Remove a old record)
+         * Delegate Intro: http://jsgears.com/thread-402-1-1.html
+         ☆ 為被選中的元素添加一個或多個事件處理程序，並設定當事件發生時運行的函數。
+         * Because the li elements is generated by js, we need to use delegate to bind all the remove buttons.
+         */
+        function sureToDelete() {
+            if (confirm("確定要刪除此事項？")) {
+                return true
+            } 
+        }
+         $("body").delegate(".btnRemove", "click", function (e) {
+            const recordId = $(this).attr('data-record-id');
+            if (sureToDelete()){
+                sendRemoveItemRequest(recordId);}
+        });
+        /**
+         * Listen: Double Click Event (Edit a old record)
+         */
+         $("body").delegate(".list-group-item:not(.on-edit)", "dblclick", function (e) {
+            //target.nodeName
+            const isNotClickInput = (e.target.nodeName !== 'INPUT');
+            const recordId = $(this).attr('data-record-id');
+            // Prevent DBClick the example one
+            if (isNotClickInput && recordId) {
+                showEditForm(recordId)
+            }
+        });
+        /**
+         * Listen: Click Event (Cancel Update Record)
+         */
+         $("body").delegate(".btnCancel", "click", function (e) {
+            const recordId = $(this).attr('data-record-id');
+            cancelEditForm(recordId)
+        });
+        /**
+         * Listen: Click Event (Send Update Record Request)
+         */
+         $("body").delegate("#put-form", "submit", function (e) {
+            // prevent auto reload the page after sending request
+            preventReload(e)
+            const recordId = $(this).attr('data-record-id');
+            const inputData = getPutInputData(recordId);
+            sendEditItemRequest(recordId, inputData);
+        });
+        $("body").on("click","#defaultCheck1", function(e){
+            const recordId = $(this).attr('data-record-id');
+            console.log(recordId)
+            const itemCheck = $(this).prop("checked");
+            console.log(itemCheck);
+            const inputData = {
+                'check': itemCheck,
+            }
+            sendEditItemRequest(recordId, inputData);
+        });
+
+    </script>
+
+</body>
+</html>
