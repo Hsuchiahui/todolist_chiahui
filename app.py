@@ -76,9 +76,8 @@ def update_record(record_id):
         record.check =str2bool(req_data['check'])
     else:     
         record.event = req_data['event']
-        record.date = req_data['date']
-        date = datetime.strptime(req_data['date'],'%Y-%m-%d')
-        record.date = datetime.date(date)
+        record.date = datetime.strptime(req_data['date'], '%Y-%m-%d')
+        record.date = datetime.date(record.date)
     db.session.add(record)
     db.session.commit()
     return 'Update Succeeded', 200
