@@ -64,10 +64,9 @@ def get_record(record_id):
         'id': record.id,
         'event': record.event,
         'date': record.date,
+        'check':record.check
     }
-    print(record_data)
     return jsonify(record_data), 200
-
 
 @app.route('/record/<int:record_id>', methods=['PUT'])
 def update_record(record_id):
